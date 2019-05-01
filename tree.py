@@ -1,7 +1,18 @@
 import turtle
 import random
+# Day
+SKY_COLOR = (234, 222, 187)
+HORIZON_COLOR = (177, 198, 239)
+# Night
+#SKY_COLOR = (3, 0, 15)
+#HORIZON_COLOR = (20, 20, 25)
+SILHOUETTE_COLOR = (4, 12, 4)
 
-SKY_COLOR = (132, 170, 232)
+LIGHT_Y = -150
+MIN_RADIUS = 300
+MAX_RADIUS = 500
+
+turtle.colormode(255)
 
 
 def get_weighted_int(a, b, weight):
@@ -14,6 +25,28 @@ def get_weighted_int(a, b, weight):
     return a + int((b - a) * weight)
 
 
+def color_with_night(color, depth):
+    distance = (((turtle.xcor() ** 2) + ((turtle.ycor() - LIGHT_Y) ** 2)) / (depth ** 1.5)) ** 0.5
+
+    if distance <= MIN_RADIUS:
+        return color
+    elif distance >= MAX_RADIUS:
+        return SILHOUETTE_COLOR
+    else:
+        distance -= MIN_RADIUS
+        color_percent = 1 - (distance / (MAX_RADIUS - MIN_RADIUS))
+
+        # Set the each of the color values of the new color a depth percent of the
+        # original color, with the percent that is not the original color being the
+        # silhouette color
+        red = int((color[0] * color_percent) + (SILHOUETTE_COLOR[0] * (1 - color_percent)))
+        green = int((color[1] * color_percent) + (SILHOUETTE_COLOR[1] * (1 - color_percent)))
+        blue = int((color[2] * color_percent) + (SILHOUETTE_COLOR[2] * (1 - color_percent)))
+
+        # Return the RGB value of the new color
+        return red, green, blue
+
+
 def color_with_depth(color, depth):
     """
     Takes a color and returns a modified version of the color that accounts for
@@ -23,17 +56,22 @@ def color_with_depth(color, depth):
     :return:
     """
     # Get the percent of the color to be visible based on depth
-    color_percent = depth ** 0.5
+    color_percent = depth ** 2
 
     # Set the each of the color values of the new color a depth percent of the
     # original color, with the percent that is not the original color being the
     # sky color
-    red = int((color[0] * color_percent) + (SKY_COLOR[0] * (1 - color_percent)))
-    green = int((color[1] * color_percent) + (SKY_COLOR[1] * (1 - color_percent)))
-    blue = int((color[2] * color_percent) + (SKY_COLOR[2] * (1 - color_percent)))
+    red = int((color[0] * color_percent) + (HORIZON_COLOR[0] * (1 - color_percent)))
+    green = int((color[1] * color_percent) + (HORIZON_COLOR[1] * (1 - color_percent)))
+    blue = int((color[2] * color_percent) + (HORIZON_COLOR[2] * (1 - color_percent)))
 
     # Return the RGB value of the new color
     return red, green, blue
+
+
+def diffuse_color(color, depth):
+    return color_with_depth(color, depth)
+    #return color_with_depth(color_with_night(color, depth), depth)
 
 
 def get_branch_color(segments):
@@ -238,13 +276,14 @@ def get_grass_color():
     Generates a random green color for grass
     :return: the color of the grass
     """
-    # Randomly generate a green
+    """# Randomly generate a green
     green = random.randint(100, 165)
     blue = random.randint(0, 20)
     red = blue + random.randint(0, 10)
 
     # Return the RGB value of the grass
-    return red, green, blue
+    return red, green, blue"""
+    return get_rand_leaf_color((0.3, 0.6, 0.1))
 
 
 def draw_leaf(size):
@@ -279,14 +318,14 @@ def draw_tree(segments, size, depth, ygr_percents):
     """
     # Draw a flower instead of a branch if at the end of a branch
     if segments == 0 or size < 1:
-        turtle.color(color_with_depth(get_rand_leaf_color(ygr_percents), depth))
+        turtle.color(diffuse_color(get_rand_leaf_color(ygr_percents), depth))
         draw_leaf(10 * depth)
     # Otherwise draw a branch
     else:
         # Draw the current main branch
         turtle.down()
         turtle.pensize((size ** 0.8) * 0.25)
-        turtle.pencolor(color_with_depth(get_branch_color(segments), depth))
+        turtle.pencolor(diffuse_color(get_branch_color(segments), depth))
         turtle.forward(size)
         turtle.up()
 
@@ -316,7 +355,7 @@ def test_single_tree():
     # Set up turtle window
     turtle.colormode(255)
     turtle.bgcolor(SKY_COLOR)
-    turtle.tracer(0, 0)
+    turtle.tracer(1000, 0)
 
     # Position turtle
     turtle.up()
@@ -356,6 +395,3 @@ def test_range_of_trees():
         turtle.update()
 
     turtle.done()
-
-
-test_range_of_trees()
